@@ -3,6 +3,7 @@ from plot import *
 import torch
 import logging
 from datetime import datetime
+from data import get_mnist_np, sample_minibatch_deterministically, preprocess, shuffle
 
 class classifier():
 
@@ -12,6 +13,7 @@ class classifier():
         self.batch_size = args.batch_size
         self.num_train = data.num_train
         self.num_classes = data.num_classes
+        self.args = args
         assert args.model_type == 'mlp' or args.model_type == 'cnn'
         if args.model_type == 'mlp':
             self.net = mlp(args.conditioned, data.input_dims, data.num_classes, hidden_size=256)
@@ -43,7 +45,7 @@ class classifier():
             #self.backprop_grads[name].volatile = False
         return hook
 
-    def optimizer_dni_module(self, images, labels, label_onehot, grad_optimizer, optimizer, forward):
+    def optimize_grad_and_net(self, images, labels, label_onehot, grad_optimizer, optimizer, forward):
         # synthetic model
         # Forward + Backward + Optimize
         grad_optimizer.zero_grad()
@@ -66,34 +68,82 @@ class classifier():
 
         grad_loss.backward()
         grad_optimizer.step()
+        optimizer.step()
         self.stats['grad_loss'].append(grad_loss.item())
         self.stats['classify_loss'].append(loss.item())
         return loss, grad_loss
 
+
     def train_model(self):
-        for epoch in range(self.num_epochs):
-            for i, (images, labels) in enumerate(self.train_loader):
+
+        train_data_np, train_labels_np, test_data_np, test_labels_np = get_mnist_np(root='./data', download=True)
+        x_labeled, x_unlabelled, x_test, y_labeled, _, y_unlabelled, y_test = preprocess(train_data_np=train_data_np,
+                                                                                         train_labels_np=train_labels_np,
+                                                                                         test_data_np=test_data_np,
+                                                                                         test_labels_np=test_labels_np,
+                                                                                         proportion_labeled=1.0)
+        self.x_test = x_test
+        self.y_test = y_test
+
+        self.train_model_supervised(x=x_labeled, y=y_labeled, num_epochs=self.args.num_epochs)
+        self.train_model_unsupervised(x=x_unlabelled, y=y_unlabelled, num_epochs=self.args.num_unsupervised_epochs)
+        self.train_model_supervised(x=x_labeled, y=y_labeled, num_epochs=20) # fine tuning
+
+    def train_model_supervised(self, x, y, num_epochs):
+        print("Supervised Training")
+        logging.info("Supervised Training")
+        for epoch in range(num_epochs):
+            x, y = shuffle(x=x, y=y)
+            # for i, (images, labels) in enumerate(self.train_loader):
+            for i in range(int(len(x) / self.args.batch_size)):
                 # Convert torch tensor to Variable
-                labels_onehot = torch.zeros([labels.size(0), self.num_classes])
-                labels_onehot.scatter_(1, labels.unsqueeze(1), 1)
-                out = images
+
+                x_l, y_l, _ = sample_minibatch_deterministically(x, y, batch_i=i, batch_size=self.args.batch_size)
+
+                labels_onehot = torch.zeros([y_l.size(0), self.num_classes])
+                labels_onehot.scatter_(1, y_l.long().unsqueeze(1), 1)
+                # Forward + Backward + Optimize
+                loss, grad_loss = self.optimize_grad_and_net(x_l, y_l.long(), labels_onehot,
+                                          self.net.grad_optimizer, self.net.optimizer, self.net)
+
+                if (i+1) % 100 == 0:
+                    print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
+                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss))
+
+                    logging.info('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
+                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss))
+
+            if (epoch + 1) % 1 == 0:
+                perf = self.test_model(epoch + 1)
+                if perf > self.best_perf:
+                    torch.save(self.net.state_dict(), self.model_name + '_model_best.pkl')
+                    self.net.train()
+
+        # Save the Model ans Stats
+        pkl.dump(self.stats, open(self.model_name + '_stats.pkl', 'wb'))
+        torch.save(self.net.state_dict(), self.model_name + '_model.pkl')
+        if self.plot:
+            plot(self.stats, name=self.model_name)
+
+    def train_model_unsupervised(self, x, y, num_epochs):
+        print("Unsupervised Training")
+        logging.info("Unsupervised Training")
+        for epoch in range(num_epochs):
+            x, y = shuffle(x=x, y=y)
+            for i in range(int(len(x) / self.args.batch_size)):
+                # Convert torch tensor to Variable
+
+                x_l, y_l, _ = sample_minibatch_deterministically(x, y, batch_i=i, batch_size=self.args.batch_size)
+
+                labels_onehot = torch.zeros([y_l.size(0), self.num_classes])
+                labels_onehot.scatter_(1, y_l.unsqueeze(1), 1)
+                out = x_l
                 # Forward + Backward + Optimize
                 for (optimizer, forward) in zip(self.net.optimizers, self.net.forwards):
                     if self.conditioned:
                         out = self.optimizer_module(optimizer, forward, out, labels_onehot)
                     else:
                         out = self.optimizer_module(optimizer, forward, out)
-                # synthetic model
-                # Forward + Backward + Optimize
-                loss, grad_loss = self.optimizer_dni_module(images, labels, labels_onehot,
-                                          self.net.grad_optimizer, self.net.optimizer, self.net)
-
-                if (i+1) % 100 == 0:
-                    print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
-                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss.item()))
-
-                    logging.info('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
-                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss.item()))
 
             if (epoch+1) % 10 == 0:
                 perf = self.test_model(epoch+1)
@@ -112,13 +162,15 @@ class classifier():
         self.net.eval()
         correct = 0
         total = 0
-        for images, labels in self.test_loader:
-            outputs = self.net(images)
-            outputs = outputs[-1]
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted.cpu() == labels).sum()
-        perf = 100 * correct / total
+        with torch.no_grad():
+            for i in range(int(len(self.x_test) / self.args.batch_size)):
+                images, labels, _ = sample_minibatch_deterministically(x=self.x_test, y=self.y_test, batch_i=i, batch_size=self.args.batch_size)
+                outputs = self.net(images)
+                outputs = outputs[-1]
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted.cpu() == labels).sum()
+            perf = 100 * correct / total
         print('Epoch %d: Accuracy of the network on the 10000 test images: %d %%' % (epoch, perf))
         logging.info('Epoch %d: Accuracy of the network on the 10000 test images: %d %%' % (epoch, perf))
         return perf

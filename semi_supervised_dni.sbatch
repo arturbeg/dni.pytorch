@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 
 # set name of job
-#SBATCH --job-name=dni
+#SBATCH --job-name=dni_semi_supervised
 
 # set number of GPUs
 #SBATCH --gres=gpu:1
@@ -22,6 +22,6 @@
 #SBATCH --mail-user=artur.begyan@kellogg.ox.ac.uk
 
 # Standard output and error log
-#SBATCH --output=dni_%j.out
+#SBATCH --output=dni_semi_supervised%j.out
 
-srun python main.py --model_type mlp --semi_supervised False
+srun python main.py --model_type mlp --semi_supervised True
