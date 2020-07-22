@@ -24,4 +24,4 @@
 # Standard output and error log
 #SBATCH --output=dni_with_subset%j.out
 
-srun python main.py --model_type mlp --dni_with_subset True
+srun python main.py --model_type mlp --dni_with_subset True --num_epochs 3000

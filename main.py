@@ -2,7 +2,6 @@ import argparse
 from train import classifier
 from train_semi_supervised import classifier as semi_supervised_classifier
 from train_with_subset import classifier as subset_classifier
-import torch
 from dataset import *
 import os
 

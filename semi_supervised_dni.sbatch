@@ -24,4 +24,4 @@
 # Standard output and error log
 #SBATCH --output=dni_semi_supervised%j.out
 
-srun python main.py --model_type mlp --semi_supervised True
+srun python main.py --model_type mlp --semi_supervised True --num_epochs 3000 --num_unsupervised_epochs 100

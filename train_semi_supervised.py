@@ -89,7 +89,9 @@ class classifier():
 
         self.train_model_supervised(x=x_labeled, y=y_labeled, num_epochs=self.args.num_epochs)
         self.train_model_unsupervised(x=x_unlabelled, y=y_unlabelled, num_epochs=self.args.num_unsupervised_epochs)
-        self.train_model_supervised(x=x_labeled, y=y_labeled, num_epochs=30) # fine tuning
+
+
+        self.train_model_supervised(x=x_labeled, y=y_labeled, num_epochs=(int(self.args.num_epochs * 0.1)+1)) # fine tuning
 
     def train_model_supervised(self, x, y, num_epochs):
         print("Supervised Training")
