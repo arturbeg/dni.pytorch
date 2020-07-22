@@ -1,0 +1,6 @@
+/playground.py
+.DS_Store
+.idea/
+data/
+__pycache__/
+mnist.mlp_dni_model_best.pkl

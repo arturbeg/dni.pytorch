@@ -1,8 +1,6 @@
 from model import *
 from plot import *
 import torch
-from torch.autograd import Variable
-import ipdb
 
 class classifier():
 
@@ -15,11 +13,6 @@ class classifier():
         assert args.model_type == 'mlp' or args.model_type == 'cnn'
         if args.model_type == 'mlp':
             self.net = mlp(args.conditioned, data.input_dims, data.num_classes, hidden_size=256)
-        elif args.model_type == 'cnn':
-            self.net = cnn(data.in_channel, args.conditioned, data.num_classes)
-
-        if args.use_gpu:
-            self.net.cuda()
 
         self.classificationCriterion = nn.CrossEntropyLoss()
         self.syntheticCriterion = nn.MSELoss()
@@ -29,7 +22,7 @@ class classifier():
         self.conditioned = args.conditioned
         self.best_perf = 0.
         self.stats = dict(grad_loss=[], classify_loss=[])
-        print "[%] model name will be", self.model_name
+        print("[%] model name will be", self.model_name)
 
     def optimizer_module(self, optimizer, forward, out, label_onehot=None):
         optimizer.zero_grad()
@@ -59,7 +52,7 @@ class classifier():
             keys.append(str(i))
         outputs = outs[-1]
         loss = self.classificationCriterion(outputs, labels)
-        loss.backward(retain_variables=True)
+        loss.backward(retain_graph=True)
         for (k, v) in handles.items():
             v.remove()
         grad_loss = 0.
@@ -68,8 +61,8 @@ class classifier():
 
         grad_loss.backward()
         grad_optimizer.step()
-        self.stats['grad_loss'].append(grad_loss.data[0])
-        self.stats['classify_loss'].append(loss.data[0])
+        self.stats['grad_loss'].append(grad_loss.item())
+        self.stats['classify_loss'].append(loss.item())
         return loss, grad_loss
 
     def train_model(self):
@@ -78,9 +71,6 @@ class classifier():
                 # Convert torch tensor to Variable
                 labels_onehot = torch.zeros([labels.size(0), self.num_classes])
                 labels_onehot.scatter_(1, labels.unsqueeze(1), 1)
-                images = Variable(images).cuda()
-                labels = Variable(labels).cuda()
-                labels_onehot = Variable(labels_onehot).cuda()
                 out = images
                 # Forward + Backward + Optimize
                 for (optimizer, forward) in zip(self.net.optimizers, self.net.forwards):
@@ -95,7 +85,7 @@ class classifier():
 
                 if (i+1) % 100 == 0:
                     print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
-                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.data[0], grad_loss.data[0]))
+                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss.item()))
 
             if (epoch+1) % 10 == 0:
                 perf = self.test_model(epoch+1)
@@ -115,7 +105,6 @@ class classifier():
         correct = 0
         total = 0
         for images, labels in self.test_loader:
-            images = Variable(images).cuda()
             outputs = self.net(images)
             outputs = outputs[-1]
             _, predicted = torch.max(outputs.data, 1)
@@ -124,6 +113,3 @@ class classifier():
         perf = 100 * correct / total
         print('Epoch %d: Accuracy of the network on the 10000 test images: %d %%' % (epoch, perf))
         return perf
-
-
-
