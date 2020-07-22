@@ -1,6 +1,7 @@
 import argparse
 from train import classifier
 from train_semi_supervised import classifier as semi_supervised_classifier
+from train_with_subset import classifier as subset_classifier
 import torch
 from dataset import *
 import os
@@ -17,7 +18,8 @@ if __name__ == '__main__':
     parser.add_argument('--conditioned', type=bool, default=False)
     parser.add_argument('--plot', type=bool, default=False)
     parser.add_argument('--use_gpu', type=bool, default=False)
-    parser.add_argument('--semi_supervised', type=bool, default=True)
+    parser.add_argument('--semi_supervised', type=bool, default=False)
+    parser.add_argument('--dni_with_subset', type=bool, default=False)
     parser.add_argument('--gpu_id', type=int, default=0)
 
 
@@ -37,6 +39,8 @@ if __name__ == '__main__':
 
     if args.semi_supervised:
         m = semi_supervised_classifier(args, data)
+    elif args.dni_with_subset:
+        m = subset_classifier(args, data)
     else:
         m = classifier(args, data)
 
