@@ -5,3 +5,5 @@ data/
 __pycache__/
 mnist.mlp_dni_model_best.pkl
 log_files/
+/mnist.mlp_dni_model.pkl
+/mnist.mlp_dni_stats.pkl

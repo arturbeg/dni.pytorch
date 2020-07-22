@@ -75,19 +75,21 @@ class classifier():
 
 
     def train_model(self):
+        proportion_labeled = 0.1
+        assert proportion_labeled == 0.1
 
         train_data_np, train_labels_np, test_data_np, test_labels_np = get_mnist_np(root='./data', download=True)
         x_labeled, x_unlabelled, x_test, y_labeled, _, y_unlabelled, y_test = preprocess(train_data_np=train_data_np,
                                                                                          train_labels_np=train_labels_np,
                                                                                          test_data_np=test_data_np,
                                                                                          test_labels_np=test_labels_np,
-                                                                                         proportion_labeled=1.0)
+                                                                                         proportion_labeled=proportion_labeled)
         self.x_test = x_test
         self.y_test = y_test
 
         self.train_model_supervised(x=x_labeled, y=y_labeled, num_epochs=self.args.num_epochs)
         self.train_model_unsupervised(x=x_unlabelled, y=y_unlabelled, num_epochs=self.args.num_unsupervised_epochs)
-        self.train_model_supervised(x=x_labeled, y=y_labeled, num_epochs=20) # fine tuning
+        self.train_model_supervised(x=x_labeled, y=y_labeled, num_epochs=30) # fine tuning
 
     def train_model_supervised(self, x, y, num_epochs):
         print("Supervised Training")
@@ -106,14 +108,14 @@ class classifier():
                 loss, grad_loss = self.optimize_grad_and_net(x_l, y_l.long(), labels_onehot,
                                           self.net.grad_optimizer, self.net.optimizer, self.net)
 
-                if (i+1) % 100 == 0:
-                    print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
-                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss))
+                if (i+1) % 10 == 0:
+                    print ('Epoch [%d/%d], Step [%d/%d], Loss: %.6f, Grad Loss: %.8f'
+                         %(epoch+1, self.num_epochs, i+1, len(x)//self.batch_size, loss.item(), grad_loss.item()))
 
-                    logging.info('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
-                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss))
+                    logging.info('Epoch [%d/%d], Step [%d/%d], Loss: %.6f, Grad Loss: %.8f'
+                         %(epoch+1, self.num_epochs, i+1, len(x)//self.batch_size, loss.item(), grad_loss.item()))
 
-            if (epoch + 1) % 1 == 0:
+            if (epoch + 1) % 10 == 0:
                 perf = self.test_model(epoch + 1)
                 if perf > self.best_perf:
                     torch.save(self.net.state_dict(), self.model_name + '_model_best.pkl')
@@ -131,12 +133,10 @@ class classifier():
         for epoch in range(num_epochs):
             x, y = shuffle(x=x, y=y)
             for i in range(int(len(x) / self.args.batch_size)):
-                # Convert torch tensor to Variable
-
                 x_l, y_l, _ = sample_minibatch_deterministically(x, y, batch_i=i, batch_size=self.args.batch_size)
 
                 labels_onehot = torch.zeros([y_l.size(0), self.num_classes])
-                labels_onehot.scatter_(1, y_l.unsqueeze(1), 1)
+                labels_onehot.scatter_(1, y_l.unsqueeze(1).long(), 1)
                 out = x_l
                 # Forward + Backward + Optimize
                 for (optimizer, forward) in zip(self.net.optimizers, self.net.forwards):
@@ -145,7 +145,7 @@ class classifier():
                     else:
                         out = self.optimizer_module(optimizer, forward, out)
 
-            if (epoch+1) % 10 == 0:
+            if (epoch+1) % 1 == 0:
                 perf = self.test_model(epoch+1)
                 if perf > self.best_perf:
                     torch.save(self.net.state_dict(), self.model_name+'_model_best.pkl')
