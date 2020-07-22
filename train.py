@@ -1,6 +1,8 @@
 from model import *
 from plot import *
 import torch
+import logging
+from datetime import datetime
 
 class classifier():
 
@@ -23,6 +25,9 @@ class classifier():
         self.best_perf = 0.
         self.stats = dict(grad_loss=[], classify_loss=[])
         print("[%] model name will be", self.model_name)
+
+        logging.basicConfig(filename='./log_files/'+datetime.today().strftime('%Y_%m_%d_%H_%M_%S')+'.log', level=logging.DEBUG)
+        logging.info(args)
 
     def optimizer_module(self, optimizer, forward, out, label_onehot=None):
         optimizer.zero_grad()
@@ -87,6 +92,9 @@ class classifier():
                     print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
                          %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss.item()))
 
+                    logging.info('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Grad Loss: %.4f'
+                         %(epoch+1, self.num_epochs, i+1, self.num_train//self.batch_size, loss.item(), grad_loss.item()))
+
             if (epoch+1) % 10 == 0:
                 perf = self.test_model(epoch+1)
                 if perf > self.best_perf:
@@ -112,4 +120,5 @@ class classifier():
             correct += (predicted.cpu() == labels).sum()
         perf = 100 * correct / total
         print('Epoch %d: Accuracy of the network on the 10000 test images: %d %%' % (epoch, perf))
+        logging.info('Epoch %d: Accuracy of the network on the 10000 test images: %d %%' % (epoch, perf))
         return perf
