@@ -1,5 +1,6 @@
 import argparse
-from train import *
+from train import classifier
+from train_semi_supervised import classifier as semi_supervised_classifier
 import torch
 from dataset import *
 import os
@@ -15,7 +16,9 @@ if __name__ == '__main__':
     parser.add_argument('--conditioned', type=bool, default=False)
     parser.add_argument('--plot', type=bool, default=False)
     parser.add_argument('--use_gpu', type=bool, default=False)
+    parser.add_argument('--semi_supervised', type=bool, default=False)
     parser.add_argument('--gpu_id', type=int, default=0)
+
 
     args = parser.parse_args()
 
@@ -30,5 +33,10 @@ if __name__ == '__main__':
     args.model_name = model_name
     if args.dataset == 'mnist':
         data = mnist(args)
-    m = classifier(args, data)
+
+    if args.semi_supervised:
+        m = semi_supervised_classifier(args, data)
+    else:
+        m = classifier(args, data)
+
     m.train_model()
