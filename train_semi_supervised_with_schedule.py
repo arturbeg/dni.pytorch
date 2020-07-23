@@ -100,7 +100,7 @@ class classifier():
         for i in range(self.args.num_iterations):
             loss, grad_loss = self.train_model_supervised(x=x_labeled, y=y_labeled)
             self.train_model_unsupervised(x=x_unlabelled, y=y_unlabelled, weight=self.unlabelled_weight_schedule(i))
-            if (i + 1) % 1 == 0:
+            if (i + 1) % 100 == 0:
                 print('Iteration [%d/%d], Loss: %.6f, Grad Loss: %.8f'
                       % (i + 1, self.args.num_iterations, loss.item(), grad_loss.item()))
 
@@ -108,9 +108,6 @@ class classifier():
                       % (i + 1, self.args.num_iterations, loss.item(), grad_loss.item()))
 
                 perf = self.test_model(i + 1)
-                if perf > self.best_perf:
-                    torch.save(self.net.state_dict(), self.model_name + '_model_best.pkl')
-                    self.net.train()
 
 
     def train_model_supervised(self, x, y):

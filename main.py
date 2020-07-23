@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_gpu', type=bool, default=False)
     parser.add_argument('--semi_supervised', type=bool, default=False)
     parser.add_argument('--dni_with_subset', type=bool, default=False)
-    parser.add_argument('--semi_supervised_schedule', type=bool, default=True)
+    parser.add_argument('--semi_supervised_schedule', type=bool, default=False)
     parser.add_argument('--gpu_id', type=int, default=0)
 
 
