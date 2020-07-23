@@ -2,6 +2,7 @@ import argparse
 from train import classifier
 from train_semi_supervised import classifier as semi_supervised_classifier
 from train_with_subset import classifier as subset_classifier
+from train_semi_supervised_with_schedule import classifier as semi_supervised_classifier_with_schedule
 from dataset import *
 import os
 
@@ -9,6 +10,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='DNI')
     parser.add_argument('--dataset', choices=['mnist', 'cifar10'], default='mnist')
+    parser.add_argument('--num_iterations', type=int, default=300000)
     parser.add_argument('--num_epochs', type=int, default=300)
     parser.add_argument('--num_unsupervised_epochs', type=int, default=50)
     parser.add_argument('--model_type', choices=['mlp', 'cnn'], default='mlp',
@@ -19,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_gpu', type=bool, default=False)
     parser.add_argument('--semi_supervised', type=bool, default=False)
     parser.add_argument('--dni_with_subset', type=bool, default=False)
+    parser.add_argument('--semi_supervised_schedule', type=bool, default=True)
     parser.add_argument('--gpu_id', type=int, default=0)
 
 
@@ -40,6 +43,8 @@ if __name__ == '__main__':
         m = semi_supervised_classifier(args, data)
     elif args.dni_with_subset:
         m = subset_classifier(args, data)
+    elif args.semi_supervised_schedule:
+        m = semi_supervised_classifier_with_schedule(args, data)
     else:
         m = classifier(args, data)
 
