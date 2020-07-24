@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 class dni_linear(nn.Module):
+    # TODO : initialise the last layer with zeroes
     def __init__(self, input_dims, num_classes, dni_hidden_size=1024, conditioned=False):
         super(dni_linear, self).__init__()
         self.conditioned = conditioned

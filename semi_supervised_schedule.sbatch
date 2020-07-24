@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 
 # set name of job
-#SBATCH --job-name=semi_supervised_schedule
+#SBATCH --job-name=semi_supervised_schedule_2
 
 # set number of GPUs
 #SBATCH --gres=gpu:1
@@ -22,6 +22,6 @@
 #SBATCH --mail-user=artur.begyan@kellogg.ox.ac.uk
 
 # Standard output and error log
-#SBATCH --output=semi_supervised_schedule_%j.out
+#SBATCH --output=semi_supervised_schedule_2_%j.out
 
 srun python main.py --model_type mlp --semi_supervised_schedule True --num_iterations 300000

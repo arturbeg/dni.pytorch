@@ -2,7 +2,7 @@ import argparse
 from train import classifier
 from train_semi_supervised import classifier as semi_supervised_classifier
 from train_with_subset import classifier as subset_classifier
-from train_semi_supervised_with_schedule import classifier as semi_supervised_classifier_with_schedule
+from train_semi_supervised_with_schedule_2 import classifier as semi_supervised_classifier_with_schedule
 from dataset import *
 import os
 

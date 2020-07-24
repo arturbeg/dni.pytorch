@@ -42,15 +42,15 @@ class mlp(nn.Module):
         grad = self._fc2(out, y)
         return out, grad
  
-    def forward(self, x, y=None):
+    def forward(self, x, calculate_syn_grads=False):
         x = x.view(-1, 28*28)
         fc1 = self.fc1(x)
         relu1 = self.relu(fc1)
         fc2 = self.fc2(relu1)
         
-        if y is not None:
-            grad_fc1 = self._fc1(fc1, y)
-            grad_fc2 = self._fc2(fc2, y)
+        if calculate_syn_grads:
+            grad_fc1 = self._fc1(fc1, y=None)
+            grad_fc2 = self._fc2(fc2, y=None)
             return (fc1, fc2), (grad_fc1, grad_fc2)
         else:
             return fc1, fc2
