@@ -87,7 +87,7 @@ class classifier():
         return loss, grad_loss
 
 
-    def unlabelled_weight_schedule(self, iteration, T1=72000, T2=250000, af=1.0):
+    def unlabelled_weight_schedule(self, iteration, T1=72000, T2=250000, af=3.0):
         # enough iterations for the syn grad to reach very high training accuracy
         if iteration <= T1:
             return 0.0
